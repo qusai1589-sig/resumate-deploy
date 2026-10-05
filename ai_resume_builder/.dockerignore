@@ -1,0 +1,12 @@
+.env
+.env.*
+.git
+__pycache__
+*.pyc
+*.log
+uploads
+paddle-env
+.venv
+venv
+.share-tools
+tests

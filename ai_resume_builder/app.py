@@ -20,7 +20,7 @@ from ocr_engine import run_ocr
 from resume_mapping import resume_data, MAPPING_VERSION, combine_resume_data
 
 
-load_dotenv(Path(__file__).with_name(".env"))
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 logger = logging.getLogger(__name__)
 
 SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")

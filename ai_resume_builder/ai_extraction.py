@@ -2,10 +2,11 @@ import os
 import json
 import logging
 from dotenv import load_dotenv
+from pathlib import Path
 from openai import OpenAI
 from google import genai
 
-load_dotenv()
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 # =========================
 # GEMINI
