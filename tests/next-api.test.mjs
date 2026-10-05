@@ -12,7 +12,7 @@ const png = Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), Buffe
 const json = (data, status = 200) => Response.json(data, { status });
 const profile = { personal: { name: 'Qusai Khanorwala', title: 'Computer Engineering' }, education: [{ degree: 'Computer Engineering', institution: 'Example College', year: '2026', details: 'CGPA: 9.3' }], achievements: ['Completed Python Basics — Example Institute'], skills: ['Python'], summary: 'Computer Engineering student with a CGPA of 9.3 and a Python certificate.' };
 
-function fixture({ documents = [], objects = new Map(), extracted = profile, insertFails = false, invalidAi = false, summaryFails = false, handlerOptions = {} } = {}) {
+function fixture({ documents = [], objects = new Map(), extracted = profile, insertFails = false, invalidAi = false, geminiFails = false, summaryFails = false, handlerOptions = {} } = {}) {
   const calls = [];
   const fetcher = async (address, options = {}) => {
     const url = new URL(address);
@@ -20,9 +20,13 @@ function fixture({ documents = [], objects = new Map(), extracted = profile, ins
     const body = typeof options.body === 'string' ? JSON.parse(options.body) : null;
     if (url.hostname === 'generativelanguage.googleapis.com') {
       assert.equal(options.headers['x-goog-api-key'], env.GEMINI_API_KEY);
+      if (geminiFails) return json({}, 429);
       if (invalidAi) return json({ candidates: [{ content: { parts: [{ text: 'not JSON' }] } }] });
       if (summaryFails && !body.contents[0].parts.some(part => part.inlineData)) return json({}, 429);
       return json({ candidates: [{ content: { parts: [{ text: JSON.stringify({ document_type: 'Certificate', resume_data: extracted }) }] } }] });
+    }
+    if (url.hostname === 'api.groq.com' && Array.isArray(body.messages[0].content) && geminiFails) {
+      return json({ choices: [{ message: { content: JSON.stringify({ document_type: 'Certificate', resume_data: extracted }) } }] });
     }
     if (url.hostname === 'api.groq.com') return summaryFails ? json({}, 429) : json({ choices: [{ message: { content: 'Combined engineering education and Python certification.' } }] });
     assert.equal(url.origin, env.SUPABASE_URL);
@@ -289,7 +293,7 @@ test('combined-summary provider failure does not pretend a summary was generated
   const objects = new Map(documents.map(row => [`${row.file_path}.extraction.json`, Buffer.from(JSON.stringify({ mapping_version: MAPPING_VERSION, resume_data: profile }))]));
   const app = fixture({ documents, objects, summaryFails: true });
   const response = await app.request('documents/combine', { method: 'POST', body: { document_ids: [documentId, secondId] } });
-  assert.equal(response.status, 502);
+  assert.equal(response.status, 429);
   assert.equal((await response.text()).includes(env.GEMINI_API_KEY), false);
 });
 
@@ -347,4 +351,21 @@ test('standalone backend retains unprefixed Python API paths', async () => {
   assert.equal((await config.json()).anon_key, env.SUPABASE_ANON_KEY);
   const protectedResponse = await app.handler(new Request('http://backend.example/documents'));
   assert.equal(protectedResponse.status, 401);
+});
+
+
+test('authenticated upload persists Groq facts when Gemini is rate limited', async () => {
+  const app = fixture({ geminiFails: true });
+  const { entry, path } = await app.upload();
+  const response = await app.request('upload', { method: 'POST', body: { files: [{ ticket: entry.ticket }] } });
+  assert.equal(response.status, 200);
+  const result = (await response.json()).results[0];
+  assert.equal(result.success, true);
+  assert.equal(result.resume_data.personal.name, profile.personal.name);
+  assert.match(result.resume_data.education[0].details, /9.3/);
+  assert.equal(app.documents[0].user_id, owner);
+  assert.ok(app.objects.has(`${path}.extraction.json`));
+  const call = app.calls.find(call => call.url.hostname === 'api.groq.com');
+  const content = JSON.parse(call.options.body).messages[0].content;
+  assert.equal(content[1].image_url.url, `data:image/png;base64,${png.toString('base64')}`);
 });

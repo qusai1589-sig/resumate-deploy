@@ -8,8 +8,8 @@ const json = (body, status = 200) => Response.json(body, { status, headers: { 'C
 const fileTypes = { pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp' };
 
 function signingKey(env) {
-  const key = env.UPLOAD_SIGNING_SECRET || env.GEMINI_API_KEY;
-  requireCondition(key, 503, 'Configure GEMINI_API_KEY or UPLOAD_SIGNING_SECRET before uploading documents.');
+  const key = env.UPLOAD_SIGNING_SECRET || env.GEMINI_API_KEY || env.GROQ_API_KEY;
+  requireCondition(key, 503, 'Configure an AI provider key or UPLOAD_SIGNING_SECRET before uploading documents.');
   return key;
 }
 function sign(value, env) {

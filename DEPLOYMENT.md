@@ -44,13 +44,15 @@ Required:
 
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`: the public anon/publishable key, not a service-role key.
-- `GEMINI_API_KEY`: reads images and PDFs.
-- `GEMINI_MODEL`: use a document-capable Gemini model enabled for your account.
+- At least one of `GEMINI_API_KEY` or `GROQ_API_KEY`: reads images and PDFs.
+- `GEMINI_MODEL`: use a document-capable Gemini model enabled for your account when using Gemini.
+- `GROQ_VISION_MODEL`: optional vision model override; defaults to `qwen/qwen3.8-27b`.
+  This is separate from the text summary setting `GROQ_MODEL`.
 
 Optional summary providers: `GROQ_API_KEY`, `GROQ_MODEL`, `OPENROUTER_API_KEY`,
 `OPENROUTER_MODEL`. If they are absent, Gemini generates combined summaries.
 Optional `UPLOAD_SIGNING_SECRET` can be a separate strong random private secret;
-otherwise the server derives upload signatures using your private Gemini key.
+otherwise the server derives upload signatures using your private Gemini or Groq key.
 No Supabase service-role key is required by the new API.
 
 Deploy after saving the settings. Adding variables does not change an existing
@@ -78,3 +80,16 @@ Supabase Storage receives file bytes directly from the authenticated browser,
 avoiding Vercel's function request/response payload limits. The Next.js API
 verifies the authenticated user, signed metadata and actual stored file before
 reading it with Gemini. Provider keys and document bytes never enter static assets.
+
+## Extraction fallback
+
+Gemini is tried first. On provider errors, invalid JSON or unreadable results,
+Groq vision receives the private image bytes if `GROQ_API_KEY` is configured.
+PDFs are rendered on the server and sent in batches of at most three page images;
+all batches are merged into editable resume facts. The fallback accepts up to
+12 pages per PDF; longer PDFs receive a clear request to split the document.
+No PaddleOCR models or separate Python server are used.
+
+After updating, run `npm install` to install the PDF renderer and update the lockfile
+before building and publishing the new commit. Add `GROQ_API_KEY` to Vercel
+Production variables and redeploy. Provider keys remain private.
