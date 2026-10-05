@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { listSavedResumes, saveResume } from '../src/services/resumeLibrary.js';
-import { emptyResume } from '../src/services/documentResume.js';
+import { listSavedResumes, saveResume } from '../../src/services/resumeLibrary.js';
+import { emptyResume } from '../../src/services/documentResume.js';
 function storage() {
   const values = new Map();
   globalThis.localStorage = { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value) };

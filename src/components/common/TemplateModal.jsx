@@ -1,5 +1,5 @@
 import { X, ArrowRight } from 'lucide-react';
-import { ResumePreview } from '../../pages/ResumeBuilder';
+import { ResumePreview } from '../../screens/ResumeBuilder';
 import './Modal.css';
 
 const createPreviewResume = (template) => {

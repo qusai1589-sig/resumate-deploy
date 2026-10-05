@@ -1,32 +1,48 @@
-# Resumate deployment copy
+# ResuMate — one Next.js app
 
-This independent repository contains the current local frontend and backend.
-The original projects and their repositories are preserved.
+The website and its API run together on one domain in one Vercel project.
+The existing resume templates, editor and certificate vault are preserved.
+This repository is independent of the original frontend and backend repositories.
 
-- `ResuMate-main/`: React/Vite frontend.
-- `ai_resume_builder/`: FastAPI backend with OCR and AI extraction.
+## Run locally
 
-Make future changes in these folders inside this repository.
+```bash
+npm install
+npm run dev
+```
 
-## Local development
+Open http://localhost:3000. Start these commands from the repository root.
+Keep private configuration in the root `.env`; Next.js loads it automatically.
+No separate Python server, Docker container or backend URL is needed.
 
-Frontend: run `npm ci` then `npm run dev` inside `ResuMate-main`.
-Backend: create a Python environment, install `ai_resume_builder/requirements.txt`,
-install the system PDF conversion dependency (`pdftoppm`), then run
-`uvicorn app:app --host 127.0.0.1 --port 8000` inside `ai_resume_builder`.
-Configure environment variables privately. No `.env` files are included in this copy.
-On this machine, the existing `/games/paddle-env` environment can be reused.
+## Code
 
-## Deployment layout
+- `app/`: Next.js page, layout and `/api` route handler.
+- `server/`: server-side authentication, private document operations and AI.
+- `src/`: existing React UI and original template designs; UI views are in `src/screens`.
+- `tests/`: API tests, including ownership and document extraction flows.
+- `ai_resume_builder/`: previous Python implementation retained for reference;
+  it is not used by the Next.js app and its dependencies are not deployed.
 
-Use `ResuMate-main` as the frontend host's root directory and
-`ai_resume_builder` as the backend host's root directory.
-Set frontend `VITE_API_BASE_URL` to the backend's public HTTPS URL.
-Set backend `FRONTEND_ORIGINS` to the frontend's public HTTPS origin.
-Supply backend Supabase and AI credentials through the host's environment settings.
-Configure the frontend URL in Supabase Auth for login redirects.
+The repository has one active root package and one Next.js deployment.
+Previous Vite and standalone deployment metadata are retained under `legacy/`
+as reference files. Start and deploy the app from the repository root.
 
-Historical handoff notes mention older paths and unfinished work. Use the actual
-code in this repository and `ResuMate-main/LOCAL_INTEGRATION.md` for the current flow.
+Document images and PDFs are read directly by Gemini vision on the server.
+This replaces native PaddleOCR/PDF conversion dependencies in the deployed app.
+Groq, OpenRouter and Gemini can generate the combined factual summary.
+Original documents and extraction caches remain private in Supabase Storage.
+Uploads up to 10 MB go directly to owner-protected Supabase storage, then the API
+validates their signed upload tickets, file signatures, sizes and ownership.
+Downloads use authenticated owner checks followed by 60-second signed URLs.
 
-No Git remote is configured until you connect this copy to your new repository.
+## Checks
+
+```bash
+npm test
+npm run lint
+npm run build
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for the settings for the existing Vercel project.
+Never commit `.env` or add AI/service-role keys to public frontend variables.

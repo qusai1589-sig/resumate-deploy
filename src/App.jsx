@@ -4,15 +4,15 @@ import { templateResume, applyDocumentToResume } from './services/documentResume
 import { getAuthClient } from './services/authService';
 
 import AccountMenu from './components/Account/AccountMenu';
-import YourResumes from './pages/YourResumes';
+import YourResumes from './screens/YourResumes';
 import { listSavedResumes, saveResume } from './services/resumeLibrary';
 
-import LandingPage from './pages/LandingPage';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import TemplateSelection from './pages/TemplateSelection';
-import ResumeBuilder from './pages/ResumeBuilder';
-import ATSChecker from './pages/ATSChecker';
+import LandingPage from './screens/LandingPage';
+import Login from './screens/Login';
+import Dashboard from './screens/Dashboard';
+import TemplateSelection from './screens/TemplateSelection';
+import ResumeBuilder from './screens/ResumeBuilder';
+import ATSChecker from './screens/ATSChecker';
 import CertificateVaultModal from './components/CertificateVault/CertificateVaultModal';
 
 function App() {

@@ -1,4 +1,4 @@
-const base = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/\/$/, '');
+const base = '/api';
 const SESSION_KEY = 'resumate.auth.session';
 const VERIFIER_KEY = 'resumate.auth.verifier';
 let clientPromise;
@@ -22,7 +22,10 @@ function base64url(bytes) {
 }
 export function getAuthClient() {
   if (!clientPromise) clientPromise = fetch(`${base}/auth/config`).then(async response => {
-    if (!response.ok) throw new Error('Authentication configuration unavailable. Start the backend.');
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.detail || 'Authentication configuration unavailable. Check the Next.js deployment settings.');
+    }
     const config = await response.json();
     async function authRequest(path, body, token) {
       const response = await fetch(`${config.url}/auth/v1/${path}`, {

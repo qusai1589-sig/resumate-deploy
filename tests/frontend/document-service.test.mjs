@@ -9,8 +9,8 @@ async function service(api) {
   const moduleURL = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`;
   const apiURL = moduleURL('export default { get: (...args) => globalThis.documentTestApi.get(...args), post: (...args) => globalThis.documentTestApi.post(...args) };');
   const authURL = moduleURL('export const getAuthClient = async () => ({ auth: { getSession: async () => ({ data: { session: { user: { id: globalThis.documentTestOwner } } } }) } });');
-  const mappingURL = moduleURL(await readFile(new URL('../src/services/documentResume.js', import.meta.url), 'utf8'));
-  const source = (await readFile(new URL('../src/services/documentService.js', import.meta.url), 'utf8'))
+  const mappingURL = moduleURL(await readFile(new URL('../../src/services/documentResume.js', import.meta.url), 'utf8'));
+  const source = (await readFile(new URL('../../src/services/documentService.js', import.meta.url), 'utf8'))
     .replace("'./apiClient'", JSON.stringify(apiURL)).replace("'./authService'", JSON.stringify(authURL)).replace("'./documentResume'", JSON.stringify(mappingURL));
   return import(moduleURL(source + `\n// document test ${sequence++}`));
 }
@@ -40,7 +40,7 @@ test('older documents request the owner-protected extraction route', async () =>
 });
 
 test('missing API route is distinguished from an unavailable document', async () => {
-  for (const [detail, pattern] of [['Not Found', /Restart the backend/], ['Document not found', /could not be found in your account/]]) {
+  for (const [detail, pattern] of [['Not Found', /Redeploy the combined Next.js app/], ['Document not found', /could not be found in your account/]]) {
     const module = await service({ post: async () => { const error = new Error(detail); error.status = 404; error.detail = detail; throw error; } });
     await assert.rejects(module.getDocumentForResume(record), pattern);
   }

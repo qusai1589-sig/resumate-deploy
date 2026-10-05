@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { applyDocumentToResume, emptyResume, hasResumeFacts } from '../src/services/documentResume.js';
+import { applyDocumentToResume, emptyResume, hasResumeFacts } from '../../src/services/documentResume.js';
 
 test('certificate recipient fills the editable name and achievements without inserting filename', () => {
   const resume = applyDocumentToResume(emptyResume(), { id: 'certificate-1', file_name: 'random-upload.png', resume_data: {
@@ -54,7 +54,7 @@ test('unsupported object values and empty facts do not become resume content', (
 });
 
 test('original template content stays visible and extracted education replaces its example row', async () => {
-  const { templateResume } = await import('../src/services/documentResume.js');
+  const { templateResume } = await import('../../src/services/documentResume.js');
   const original = templateResume();
   assert.equal(original.personal.name, 'Your Name');
   assert.equal(original.personal.title, 'Computer Engineering Student');

@@ -1,0 +1,12 @@
+{
+  "name": "resumate-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.21.0" },
+  "scripts": {
+    "start": "node index.mjs",
+    "dev": "node --watch index.mjs",
+    "build": "node check.mjs"
+  }
+}

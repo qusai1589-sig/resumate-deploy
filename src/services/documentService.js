@@ -78,7 +78,7 @@ export async function getDocumentForResume(document) {
   if (!extraction || !hasResumeFacts(extraction.resume_data)) {
     try { extraction = normalizeExtraction(await apiClient.post(`/documents/${document.id}/extraction`)); }
     catch (error) {
-      if (error.status === 404 && error.detail === 'Not Found') throw new Error('The running backend needs an update. Restart the backend from /games/ai_resume_builder, then try again.', { cause: error });
+      if (error.status === 404 && error.detail === 'Not Found') throw new Error('The document API needs an update. Redeploy the combined Next.js app, then try again.', { cause: error });
       if (error.status === 404) throw new Error('This document could not be found in your account. Refresh the vault and try again.', { cause: error });
       throw error;
     }
@@ -98,7 +98,7 @@ export async function combineDocumentsForResume(documents) {
   let result;
   try { result = await apiClient.post('/documents/combine', { document_ids: ids }); }
   catch (error) {
-    if (error.status === 404 && error.detail === 'Not Found') throw new Error('Restart the backend from /games/ai_resume_builder to enable combined certificate summaries.', { cause: error });
+    if (error.status === 404 && error.detail === 'Not Found') throw new Error('Redeploy the combined Next.js app to enable combined certificate summaries.', { cause: error });
     throw error;
   }
   if (await ownerId() !== owner) throw new Error('Your account changed while combining documents. Please try again.');

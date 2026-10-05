@@ -27,7 +27,7 @@ async function loadAuth({ googleEnabled = true, initial, url = 'http://localhost
     if (String(url).endsWith('/auth/v1/settings')) return json({ external: { google: googleEnabled } });
     return remote ? remote(String(url), options) : json(session());
   };
-  const source = (await readFile(new URL('../src/services/authService.js', import.meta.url), 'utf8')).replace('import.meta.env.VITE_API_BASE_URL', 'undefined');
+  const source = (await readFile(new URL('../../src/services/authService.js', import.meta.url), 'utf8'));
   const moduleURL = `data:text/javascript;base64,${Buffer.from(source + `\n// test ${sequence++}`).toString('base64')}`;
   return { auth: await import(moduleURL), state, moduleURL };
 }
@@ -85,13 +85,19 @@ test('Google callback exchanges the code once and removes it from browser histor
   assert.equal(sessionStorage.getItem('resumate.auth.verifier'), null);
 });
 
-test('document client sends bearer auth, multipart bytes, and private downloads', async () => {
-  const { auth, state, moduleURL } = await loadAuth({ initial: { ...session(), expires_at: Date.now() / 1000 + 3600 }, remote: (url) => url.endsWith('/file') ? new Response('private-file') : json({ documents: [] }) });
+test('document client uploads directly to private storage, finalizes through the API, and downloads privately', async () => {
+  const { auth, state, moduleURL } = await loadAuth({ initial: { ...session(), expires_at: Date.now() / 1000 + 3600 }, remote: (url) => {
+    if (url.endsWith('/upload/prepare')) return json({ user_id: 'test-owner', anon_key: 'public-test-key', files: [{ upload_url: 'https://supabase.test/storage/v1/object/uploads/test-owner/test.pdf', mime_type: 'application/pdf', ticket: 'test-ticket' }] });
+    if (url.endsWith('/upload')) return json({ results: [{ success: true }] });
+    if (url.endsWith('/file')) return json({ url: 'https://supabase.test/private-download' });
+    if (url.endsWith('/private-download')) return new Response('private-file');
+    return json({ documents: [] });
+  } });
   await auth.getAuthClient();
   let clicked = false;
   window.document = { createElement: () => ({ click: () => { clicked = true; } }) };
-  const source = (await readFile(new URL('../src/services/apiClient.js', import.meta.url), 'utf8'))
-    .replace("'./authService'", JSON.stringify(moduleURL)).replace('import.meta.env.VITE_API_BASE_URL', 'undefined');
+  const source = (await readFile(new URL('../../src/services/apiClient.js', import.meta.url), 'utf8'))
+    .replace("'./authService'", JSON.stringify(moduleURL));
   const { apiClient } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
   await apiClient.get('/documents');
   const form = new FormData(); form.append('files', new Blob(['test-file']), 'test.pdf');
@@ -99,9 +105,14 @@ test('document client sends bearer auth, multipart bytes, and private downloads'
   await apiClient.download({ id: 'test-document', file_name: 'private.pdf' });
   assert.ok(clicked);
   const upload = state.calls.find(call => call.url.endsWith('/upload'));
-  assert.equal(upload.options.body, form);
+  assert.deepEqual(JSON.parse(upload.options.body), { files: [{ ticket: 'test-ticket' }] });
   assert.equal(upload.options.headers.Authorization, 'Bearer test-access');
-  assert.equal(upload.options.headers['Content-Type'], undefined);
+  assert.equal(upload.options.headers['Content-Type'], 'application/json');
+  const storage = state.calls.find(call => call.url.includes('/storage/v1/object/uploads/'));
+  assert.equal(storage.options.body.size, 9);
+  assert.equal(storage.options.headers.Authorization, 'Bearer test-access');
+  assert.equal(storage.options.headers.apikey, 'public-test-key');
+  assert.ok(state.calls.some(call => call.url.endsWith('/private-download') && !call.options.headers));
   assert.ok(state.calls.some(call => call.url.endsWith('/documents/test-document/file')));
 });
 
@@ -118,4 +129,10 @@ test('disabled Google provider stays on the login screen with a clear error', as
   await assert.rejects(auth.googleLogin(), /Google sign-in is not enabled/);
   assert.equal(state.assigned, null);
   assert.equal(sessionStorage.getItem('resumate.auth.verifier'), null);
+});
+
+test('missing deployed Supabase configuration surfaces the server explanation', async () => {
+  const { auth } = await loadAuth();
+  globalThis.fetch = async () => json({ detail: 'Configure SUPABASE_URL and SUPABASE_ANON_KEY in this deployment.' }, 503);
+  await assert.rejects(auth.getAuthClient(), /Configure SUPABASE_URL and SUPABASE_ANON_KEY/);
 });
