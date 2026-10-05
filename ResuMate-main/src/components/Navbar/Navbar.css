@@ -1,0 +1,271 @@
+.navbar {
+  position: sticky;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 1000;
+
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  border-bottom: 1px solid var(--border-color);
+  transition: all var(--transition-normal);
+}
+
+.navbar-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: var(--nav-height);
+}
+
+/* =========================
+   BRAND
+========================= */
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--text-main);
+
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.brand-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 38px;
+  height: 38px;
+
+  border-radius: var(--radius-md);
+
+  background: var(--primary-gradient);
+  color: white;
+
+  box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);
+}
+
+.brand-text {
+  background: linear-gradient(
+    135deg,
+    #1e1b4b 0%,
+    #4338ca 100%
+  );
+
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.brand-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+
+  background: var(--primary-light);
+  color: var(--primary);
+
+  padding: 0.15rem 0.45rem;
+
+  border-radius: var(--radius-full);
+
+  letter-spacing: 0.04em;
+  margin-left: 0.25rem;
+
+  text-transform: uppercase;
+}
+
+/* =========================
+   DESKTOP NAVIGATION
+========================= */
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.nav-link {
+  font-size: 0.95rem;
+  font-weight: 500;
+
+  color: var(--text-muted);
+
+  text-decoration: none;
+
+  transition: color var(--transition-fast);
+
+  position: relative;
+  padding: 0.25rem 0;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+}
+
+.nav-link::after {
+  content: '';
+
+  position: absolute;
+  bottom: 0;
+  left: 0;
+
+  width: 0%;
+  height: 2px;
+
+  background: var(--primary);
+
+  transition: width var(--transition-fast);
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* =========================
+   DESKTOP ACTIONS
+========================= */
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.btn-login {
+  color: var(--text-muted);
+
+  font-weight: 600;
+  font-size: 0.95rem;
+
+  padding: 0.5rem 1rem;
+
+  border-radius: var(--radius-md);
+
+  transition: all var(--transition-fast);
+
+  background: transparent;
+  border: none;
+
+  cursor: pointer;
+}
+
+.btn-login:hover {
+  color: var(--text-main);
+  background: var(--bg-subtle);
+}
+
+/* =========================
+   MOBILE MENU BUTTON
+========================= */
+
+.menu-toggle {
+  display: none;
+
+  background: none;
+  border: none;
+
+  cursor: pointer;
+
+  padding: 0.5rem;
+
+  color: var(--text-main);
+
+  border-radius: var(--radius-sm);
+}
+
+/* =========================
+   MOBILE DRAWER
+========================= */
+
+@media (max-width: 900px) {
+  .navbar-links,
+  .navbar-actions {
+    display: none;
+  }
+
+  .menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-menu {
+    position: absolute;
+
+    top: var(--nav-height);
+    left: 0;
+
+    width: 100%;
+
+    background: #ffffff;
+
+    border-bottom: 1px solid var(--border-color);
+
+    box-shadow: var(--shadow-lg);
+
+    display: flex;
+    flex-direction: column;
+
+    padding: 1.5rem;
+
+    gap: 1.25rem;
+  }
+
+  .mobile-nav-links {
+    list-style: none;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 1rem;
+
+    margin: 0;
+    padding: 0;
+  }
+
+  .mobile-nav-links .nav-link {
+    font-size: 1.05rem;
+    font-weight: 600;
+
+    display: block;
+  }
+
+  .mobile-actions {
+    display: flex;
+    flex-direction: column;
+
+    gap: 0.75rem;
+
+    padding-top: 1rem;
+
+    border-top: 1px solid var(--border-color);
+  }
+
+  .mobile-actions .btn {
+    width: 100%;
+  }
+}
+.vault-nav-button {
+  background: none;
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+/* ResuMate Logo */
+.resumate-navbar-logo {
+  width: 118px;
+  height: 48px;
+  object-fit: contain;
+  display: block;
+}

@@ -1,0 +1,17 @@
+.env
+.env.*
+node_modules/
+dist/
+dist-ssr/
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+paddle-env/
+uploads/
+.share-tools/
+*.log
+*.pem
+*.key
+.DS_Store

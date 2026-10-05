@@ -1,0 +1,117 @@
+.cta-section {
+  background: #ffffff;
+  padding: 5rem 0;
+}
+
+.cta-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 100%);
+  border-radius: var(--radius-xl);
+  padding: 4.5rem 3rem;
+  text-align: center;
+  color: #ffffff;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(67, 56, 202, 0.4);
+}
+
+.cta-banner::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(168, 85, 247, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-banner::after {
+  content: '';
+  position: absolute;
+  bottom: -50%;
+  left: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-content {
+  position: relative;
+  z-index: 2;
+  max-width: 680px;
+  margin: 0 auto;
+}
+
+.cta-title {
+  font-size: 2.75rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.03em;
+  margin-bottom: 1.25rem;
+  line-height: 1.15;
+}
+
+.cta-subtitle {
+  font-size: 1.15rem;
+  color: #e0e7ff;
+  line-height: 1.6;
+  margin-bottom: 2.25rem;
+}
+
+.cta-btn-white {
+  background: #ffffff;
+  color: #1e1b4b;
+  font-size: 1.05rem;
+  font-weight: 700;
+  padding: 1rem 2.25rem;
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.22s var(--ease-spring), box-shadow 0.22s var(--ease-spring), background 0.2s var(--ease-smooth);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  user-select: none;
+}
+
+.cta-btn-white:hover {
+  background: #ffffff;
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+}
+
+.cta-btn-white:active {
+  transform: translateY(1px) scale(0.98) !important;
+  transition-duration: 0.08s;
+}
+
+.cta-badges-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  font-size: 0.85rem;
+  color: #c7d2fe;
+}
+
+.cta-badge-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+@media (max-width: 768px) {
+  .cta-banner {
+    padding: 3rem 1.5rem;
+  }
+
+  .cta-title {
+    font-size: 2.15rem;
+  }
+
+  .cta-badges-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+}
