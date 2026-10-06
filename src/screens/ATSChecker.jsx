@@ -18,6 +18,7 @@ import {
 
 import './ATSChecker.css';
 import apiClient from '../services/apiClient';
+import { inspectResume } from '../services/atsValidation';
 
 export default function ATSChecker({
   existingResume,
@@ -50,6 +51,9 @@ export default function ATSChecker({
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
+    setSelectedFile(null);
+    setAnalysis(null);
+    setMode('upload');
 
     if (!file) {
       return;
@@ -85,7 +89,9 @@ export default function ATSChecker({
   ===================================================== */
 
   const handleAnalyze = async () => {
+    if (!selectedFile) return;
     setError('');
+    setAnalysis(null);
     setMode('analyzing');
     setAnalysisProgress(20);
     setAnalysisStep(0);
@@ -93,17 +99,27 @@ export default function ATSChecker({
       let body;
       if (selectedFile.resume) {
         const resume = selectedFile.resume;
-        const lines = [Object.values(resume.personal || {}).join(' '), resume.summary || ''];
+        const lines = [Object.values(resume.personal || {}).join(' '), ...(resume.summary ? ['Summary', resume.summary] : [])];
         for (const section of ['skills', 'education', 'experience', 'projects', 'achievements']) {
           if (resume[section]?.length) lines.push(section, ...resume[section].map(item => typeof item === 'string' ? item : Object.values(item).join(' ')));
         }
-        body = { resumeText: lines.join('\n'), jobDescription };
+        const resumeText = lines.join('\n');
+        const validation = inspectResume(resumeText);
+        if (!validation.accepted) throw new Error(validation.reason);
+        body = { resumeText, jobDescription };
       } else {
+        if (/\.txt$/i.test(selectedFile.name)) {
+          const validation = inspectResume(await selectedFile.text());
+          if (!validation.accepted) throw new Error(validation.reason);
+        }
         body = new FormData();
         body.append('resume', selectedFile);
         body.append('jobDescription', jobDescription);
       }
       const result = await apiClient.post('/ats/analyze', body);
+      if (result.documentType !== 'resume' || result.methodologyVersion !== 2 || !Number.isFinite(result.score) || result.score < 0 || result.score > 100) {
+        throw new Error('The deployed ATS service is outdated or returned an invalid result. Deploy the latest frontend and backend together.');
+      }
       setAnalysisProgress(100);
       setAnalysisStep(5);
       setAnalysis(result);
@@ -111,7 +127,10 @@ export default function ATSChecker({
       setMode('results');
     } catch (err) {
       setError(err.message || 'Unable to read this resume. Try another file.');
-      setMode('ready');
+      setSelectedFile(null);
+      setAnalysis(null);
+      setMode('upload');
+      if (fileInputRef.current) fileInputRef.current.value = '';
     }
   };
 
@@ -207,7 +226,7 @@ export default function ATSChecker({
                   <h2>Upload Your Resume</h2>
 
                   <p>
-                    Upload a PDF, DOCX or TXT resume (up to 10 MB).
+                    Resumes only: PDF, DOCX or TXT (up to 10 MB). Other documents will be rejected.
                   </p>
                 </div>
 
@@ -253,7 +272,7 @@ export default function ATSChecker({
                     </strong>
 
                     <span>
-                      Resume ready for analysis
+                      Resume selected — content will be validated
                     </span>
                   </div>
 
@@ -292,6 +311,7 @@ export default function ATSChecker({
 
               <textarea
                 className="ats-job-textarea"
+                maxLength={20000}
                 value={jobDescription}
                 onChange={(event) =>
                   setJobDescription(
@@ -311,7 +331,7 @@ export default function ATSChecker({
 
           </div>
 
-          {error && <p role="alert" className="ats-job-hint">{error}</p>}
+          {error && <p role="alert" className="ats-error">{error}</p>}
           {/* ANALYZE BUTTON */}
           <div className="ats-analyze-wrapper">
 
@@ -482,7 +502,7 @@ export default function ATSChecker({
 
           <div>
             <p className="ats-eyebrow">
-              ATS ANALYSIS COMPLETE
+              RESUME VALIDATED · ATS ANALYSIS V2
             </p>
 
             <h1>
@@ -491,8 +511,7 @@ export default function ATSChecker({
             </h1>
 
             <p>
-              Here's how your resume performs against
-              ATS-friendly resume standards.
+              Results calculated from the contents of this resume.
             </p>
           </div>
 
@@ -510,7 +529,7 @@ export default function ATSChecker({
         {/* SCORE */}
         <section className="ats-score-card">
 
-          <div className="ats-score-circle">
+          <div className="ats-score-circle" style={{ '--ats-score-angle': `${(analysis?.score || 0) * 3.6}deg` }}>
 
             <div className="ats-score-inner">
 

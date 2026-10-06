@@ -1,4 +1,5 @@
-import { requireCondition, readJson } from './errors.mjs';
+import { inspectResume } from '../src/services/atsValidation.js';
+import { ApiError, requireCondition, readJson } from './errors.mjs';
 
 const skills = ['JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java', 'C++', 'C#', 'SQL', 'PostgreSQL', 'MongoDB', 'HTML', 'CSS', 'Git', 'Docker', 'Kubernetes', 'AWS', 'Azure', 'Linux', 'REST API', 'CI/CD', 'Excel', 'Tableau', 'Power BI', 'Figma', 'Accounting', 'Sales', 'Marketing', 'Project Management', 'Customer Service', 'Communication', 'Leadership', 'Data Analysis', 'Machine Learning'];
 const aliases = { 'Node.js': ['nodejs', 'node.js'], 'REST API': ['rest api', 'rest apis', 'restful'], 'CI/CD': ['ci/cd', 'continuous integration'], React: ['react', 'reactjs', 'react.js'] };
@@ -19,12 +20,15 @@ export function analyzeResume(resumeText, jobDescription = '', { pages = null, s
   requireCondition(words.length >= 30, 422, 'Too little readable resume text. Upload a text-based resume or use your saved resume. Scanned PDFs need OCR first.');
   const jd = normalized(jobDescription.trim());
   requireCondition(!jd || (jd.match(/\S+/g) || []).length >= 15, 400, 'Add a full job description (at least 15 words), or leave it blank for a general review.');
-  const sections = Object.fromEntries(Object.entries({ experience: /\b(experience|employment|work history|internships?)\b/, projects: /\bprojects?\b/, education: /\b(education|qualifications|academic)\b/, skills: /\b(skills|competencies|technical expertise)\b/, summary: /\b(summary|profile|objective)\b/ }).map(([key, expression]) => [key, expression.test(text)]));
+  const validation = inspectResume(resumeText);
+  requireCondition(validation.accepted, 422, validation.reason);
+  const sections = validation.sections;
   const email = /[\w.+-]+@[\w.-]+\.[a-z]{2,}/i.test(text);
   const phone = /(?:\+?\d[\d ().-]{7,}\d)/.test(text);
   const dates = /\b(?:19|20)\d{2}\b/.test(text);
   const lines = resumeText.split(/\n+/).map(line => line.trim()).filter(Boolean);
-  const actionLines = lines.filter(line => /\b(built|developed|led|managed|created|designed|implemented|improved|increased|reduced|delivered|analyzed|automated|supported|organized|trained|resolved|launched)\b/i.test(line));
+  const achievements = resumeText.split(/\n+|(?<=[.!?])\s+/).map(line => line.trim()).filter(Boolean);
+  const actionLines = achievements.filter(line => /\b(built|developed|led|managed|created|designed|implemented|improved|increased|reduced|delivered|analyzed|automated|supported|organized|trained|resolved|launched)\b/i.test(line));
   const impactLines = actionLines.filter(line => /\d+(?:\.\d+)?\s*(?:%|percent|users|customers|clients|hours|days|million|projects|employees)|[$₹€£]\s*\d/i.test(line));
   const presentSkills = skills.filter(skill => matches(text, skill));
   const requiredSkills = jd ? skills.filter(skill => matches(jd, skill)) : [];
@@ -34,7 +38,7 @@ export function analyzeResume(resumeText, jobDescription = '', { pages = null, s
   const missingKeywords = jd ? keywords.filter(term => !matches(text, term)) : [];
   const keywordMatch = jd ? percent(matchedKeywords.length, keywords.length) : null;
   const skillsMatch = jd ? percent(requiredSkills.filter(skill => matches(text, skill)).length, requiredSkills.length) : null;
-  const contentQuality = Math.min(100, (sections.experience || sections.projects ? 30 : 0) + (dates ? 15 : 0) + Math.min(30, actionLines.length * 10) + Math.min(25, impactLines.length * 12.5));
+  const contentQuality = Math.round(Math.min(100, (sections.experience || sections.projects ? 20 : 0) + (dates ? 10 : 0) + Math.min(35, actionLines.length / 6 * 35) + Math.min(35, impactLines.length / Math.max(3, actionLines.length) * 35)));
   const yearRequirement = jd.match(/\b(\d{1,2})\+?\s+years?\b/);
   const declaredYears = [...text.matchAll(/\b(\d{1,2})\+?\s+years?\b/g)].map(match => Number(match[1]));
   const experienceMatch = yearRequirement && declaredYears.length ? Math.round(Math.min(1, Math.max(...declaredYears) / Number(yearRequirement[1])) * 100) : null;
@@ -56,7 +60,7 @@ export function analyzeResume(resumeText, jobDescription = '', { pages = null, s
   if (missingKeywords.length) { issues.push('Job-description terms are missing.'); suggestions.push({ id: suggestions.length + 1, section: 'Job relevance', title: 'Review missing job requirements', current: missingKeywords.join(', '), suggested: 'Mention these requirements only where supported by your real skills and experience; do not add skills you lack.' }); }
   if (words.length < 150 || words.length > 1200) issues.push(`Resume contains ${words.length} words; review whether it is too brief or too long.`);
   if (pages > 2) issues.push(`Resume has ${pages} pages; consider whether all content is relevant.`);
-  return { score, matchLabel: score >= 80 ? 'Strong' : score >= 60 ? 'Needs some improvement' : 'Needs improvement', ...metrics, matchedKeywords, missingKeywords, strengths, issues, suggestions, weights: Object.fromEntries(usable.map(([key, weight]) => [key, Math.round(weight / usable.reduce((sum, [, w]) => sum + w, 0) * 100)])), summary: `${jd ? 'Job-specific match estimate' : 'General resume readiness estimate'}. Based on readable text, section structure and achievement evidence. Formatting measures text readability, not visual layout. Employer ATS rules differ; this is not a hiring prediction.${!jd ? ' Add a job description to measure keyword and skills matching.' : ''}`, wordCount: words.length, pages, source, methodologyVersion: 1 };
+  return { score, matchLabel: score >= 80 ? 'Strong' : score >= 60 ? 'Needs some improvement' : 'Needs improvement', ...metrics, matchedKeywords, missingKeywords, strengths, issues, suggestions, weights: Object.fromEntries(usable.map(([key, weight]) => [key, Math.round(weight / usable.reduce((sum, [, w]) => sum + w, 0) * 100)])), summary: `${jd ? 'Job-specific match estimate' : 'General resume readiness estimate'}. Based on readable text, section structure and achievement evidence. Formatting measures text readability, not visual layout. Employer ATS rules differ; this is not a hiring prediction.${!jd ? ' Add a job description to measure keyword and skills matching.' : ''}`, wordCount: words.length, pages, source, documentType: 'resume', validation: { sectionCount: validation.sectionCount, sections }, methodologyVersion: 2 };
 }
 
 export async function analyzeRequest(request) {
@@ -87,11 +91,15 @@ export async function analyzeRequest(request) {
         parts.push(content.items.map(item => item.str + (item.hasEOL ? '\n' : ' ')).join(''));
       }
       text = parts.join('\n');
+    } catch (error) {
+      if (error instanceof ApiError) throw error;
+      throw new ApiError(422, 'This PDF could not be read. Upload an unlocked, valid text-based resume.');
     } finally { await task.destroy(); }
   } else if (extension === 'docx') {
     requireCondition(bytes.subarray(0, 2).toString() === 'PK', 400, 'Invalid DOCX file.');
     const mammoth = await import('mammoth');
-    text = (await mammoth.extractRawText({ buffer: bytes })).value;
+    try { text = (await mammoth.extractRawText({ buffer: bytes })).value; }
+    catch { throw new ApiError(422, 'This file is not a readable DOCX document. Upload a valid resume.'); }
   } else if (extension === 'txt') text = bytes.toString('utf8');
   else requireCondition(false, 415, 'Use PDF, DOCX or TXT. Convert legacy DOC files to DOCX first.');
   return analyzeResume(text, form.get('jobDescription') || '', { pages, source: extension });

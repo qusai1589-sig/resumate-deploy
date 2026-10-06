@@ -729,8 +729,8 @@
 
   background:
     conic-gradient(
-      #6c4df6 0deg 302deg,
-      #ece9f9 302deg 360deg
+      #6c4df6 0deg var(--ats-score-angle, 0deg),
+      #ece9f9 var(--ats-score-angle, 0deg) 360deg
     );
 
   position: relative;
@@ -1388,4 +1388,11 @@
   .ats-secondary-btn {
     width: 100%;
   }
+}
+.ats-error {
+  padding: 16px;
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  color: #991b1b;
+  background: #fef2f2;
 }

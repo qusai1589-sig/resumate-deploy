@@ -33,3 +33,12 @@ matching uses explicitly stated years only, avoiding guessed or double-counted
 employment dates. Formatting measures text structure, not columns or visual
 layout. Results expose weights and version; they are estimates, not employer
 ATS certification. Suggestions require manual review and never edit a resume.
+
+ATS methodology v2 validates resume content before calculating a score, for
+both uploads and JSON requests. Validation checks standard section headings,
+career evidence, contact information and common non-resume document markers.
+Unrecognized documents receive HTTP 422 and no score. This is rule-based
+classification: unusual layouts may need standard headings; it cannot prove
+that a deliberately fabricated resume is authentic. Content scoring uses
+achievement sentences rather than only newline counts, reducing dependence
+on PDF line wrapping. The UI rejects outdated responses and labels v2 results.
