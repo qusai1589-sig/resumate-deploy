@@ -20,15 +20,29 @@ window.addEventListener('storage', event => {
 function base64url(bytes) {
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
+async function authFetch(url, options = {}) {
+  let response;
+  try {
+    response = await fetch(url, { ...options, signal: AbortSignal.timeout(35000) });
+  } catch (error) {
+    if (error.name === 'TimeoutError' || error.name === 'AbortError') {
+      throw new Error('Sign-in service timed out. Please try again in a moment.', { cause: error });
+    }
+    throw new Error(url.startsWith(base)
+      ? 'Cannot reach the website sign-in service. Check your connection and try again. If this continues, the deployment needs to be checked.'
+      : 'Cannot reach the authentication provider. Check your connection and try again.', { cause: error });
+  }
+  return response;
+}
 export function getAuthClient() {
-  if (!clientPromise) clientPromise = fetch(`${base}/auth/config`).then(async response => {
+  if (!clientPromise) clientPromise = authFetch(`${base}/auth/config`).then(async response => {
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
       throw new Error(error.detail || 'Authentication configuration unavailable. Check the Next.js deployment settings.');
     }
     const config = await response.json();
     async function authRequest(path, body, token) {
-      const response = await fetch(`${config.url}/auth/v1/${path}`, {
+      const response = await authFetch(`${config.url}/auth/v1/${path}`, {
         method: 'POST', headers: { apikey: config.anon_key, 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(body),
       });
@@ -76,7 +90,7 @@ export function getAuthClient() {
       },
       async signInWithOAuth({ provider, options }) {
         try {
-          const settingsResponse = await fetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.anon_key } });
+          const settingsResponse = await authFetch(`${config.url}/auth/v1/settings`, { headers: { apikey: config.anon_key } });
           if (!settingsResponse.ok) throw new Error('Could not check Google login availability. Please try again.');
           const settings = await settingsResponse.json();
           if (settings.external?.[provider] !== true) throw new Error('Google sign-in is not enabled for this app yet. Please sign in with email and password.');
@@ -97,14 +111,13 @@ export function getAuthClient() {
   return clientPromise;
 }
 export async function authenticate(mode, email, password, fullName = '') {
-  const response = await fetch(`${base}/${mode === 'signin' ? 'login' : 'signup'}`, {
+  const response = await authFetch(`${base}/${mode === 'signin' ? 'login' : 'signup'}`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password, ...(mode !== 'signin' && fullName.trim() ? { full_name: fullName.trim() } : {}) }),
   });
-  const result = await response.json();
+  const result = await response.json().catch(() => { throw new Error('The sign-in service returned an invalid response. Check the deployment and try again.'); });
   if (!response.ok) throw new Error(result.detail || 'Authentication failed');
   if (result.access_token && result.refresh_token) {
-    const client = await getAuthClient();
-    await client.auth.setSession(result);
+    saveSession(result);
     return true;
   }
   return false;

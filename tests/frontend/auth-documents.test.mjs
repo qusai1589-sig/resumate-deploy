@@ -136,3 +136,21 @@ test('missing deployed Supabase configuration surfaces the server explanation', 
   globalThis.fetch = async () => json({ detail: 'Configure SUPABASE_URL and SUPABASE_ANON_KEY in this deployment.' }, 503);
   await assert.rejects(auth.getAuthClient(), /Configure SUPABASE_URL and SUPABASE_ANON_KEY/);
 });
+
+test('password login saves session without a second config request', async () => {
+  const { auth, state } = await loadAuth();
+  assert.equal(await auth.authenticate('signin', 'test@example.invalid', 'test-password'), true);
+  assert.equal(state.calls.length, 1);
+  assert.ok(state.calls[0].url.endsWith('/login'));
+  assert.equal(JSON.parse(localStorage.getItem('resumate.auth.session')).access_token, 'test-access');
+});
+
+test('network failures display an actionable sign-in error', async () => {
+  const { auth } = await loadAuth({ remote: () => { throw new TypeError('Failed to fetch'); } });
+  await assert.rejects(auth.authenticate('signin', 'test@example.invalid', 'test-password'), /Cannot reach the website sign-in service/);
+});
+
+test('non-JSON deployment response does not surface a JSON parse error', async () => {
+  const { auth } = await loadAuth({ remote: () => new Response('<html>Bad gateway</html>', { status: 502 }) });
+  await assert.rejects(auth.authenticate('signin', 'test@example.invalid', 'test-password'), /invalid response/);
+});
