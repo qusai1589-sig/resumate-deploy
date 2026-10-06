@@ -20,3 +20,16 @@ started by Next.js or included as a separate Vercel service. Old standalone
 package/deployment metadata is retained under `legacy/standalone-node/`.
 
 See [DEPLOYMENT.md](../DEPLOYMENT.md) for the single-project Vercel setup.
+
+ATS analysis: authenticated `POST /api/ats/analyze` accepts multipart fields
+`resume` (PDF/DOCX/TXT, max 10 MB, max 10 PDF pages) and `jobDescription`, or JSON
+`resumeText` and `jobDescription`. Documents are parsed locally and not stored or
+sent to an AI provider. Scanned PDFs are rejected rather than assigned a score.
+General readiness weights content evidence 55% and readable structure 45%.
+Job-specific analysis weights keyword coverage 35%, recognized skills 25%,
+explicit years of experience 10%, content evidence 15%, and structure 15%.
+Unavailable metrics are excluded and remaining weights normalized. Experience
+matching uses explicitly stated years only, avoiding guessed or double-counted
+employment dates. Formatting measures text structure, not columns or visual
+layout. Results expose weights and version; they are estimates, not employer
+ATS certification. Suggestions require manual review and never edit a resume.

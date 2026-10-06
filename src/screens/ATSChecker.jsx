@@ -17,83 +17,16 @@ import {
 } from 'lucide-react';
 
 import './ATSChecker.css';
-
-const mockAnalysis = {
-  score: 84,
-  matchLabel: 'Good Match',
-
-  keywordMatch: 82,
-  skillsMatch: 90,
-  experienceMatch: 76,
-  formatting: 95,
-
-  matchedKeywords: [
-    'React',
-    'JavaScript',
-    'SQL',
-    'Git',
-    'Problem Solving',
-  ],
-
-  missingKeywords: [
-    'REST API',
-    'Docker',
-    'TypeScript',
-    'CI/CD',
-  ],
-
-  strengths: [
-    'Clear and readable resume structure',
-    'Strong technical skills section',
-    'Good use of project-based experience',
-    'Consistent formatting',
-  ],
-
-  issues: [
-    'Some important job-specific keywords are missing',
-    'Experience descriptions could use more measurable results',
-    'Professional summary can be more targeted',
-  ],
-
-  suggestions: [
-    {
-      id: 1,
-      section: 'Professional Summary',
-      title: 'Make your summary more ATS-friendly',
-      current:
-        'Computer Engineering student interested in software development and AI.',
-      suggested:
-        'Computer Engineering student with experience in React, JavaScript, SQL and AI-powered application development.',
-    },
-
-    {
-      id: 2,
-      section: 'Skills',
-      title: 'Add missing technical keywords',
-      current:
-        'React, JavaScript, SQL, Git, Problem Solving',
-      suggested:
-        'React, JavaScript, TypeScript, SQL, REST APIs, Git, Docker, CI/CD, Problem Solving',
-    },
-
-    {
-      id: 3,
-      section: 'Experience',
-      title: 'Add measurable impact',
-      current:
-        'Worked on frontend development and built responsive interfaces.',
-      suggested:
-        'Developed responsive React interfaces and improved user experience through reusable frontend components.',
-    },
-  ],
-};
+import apiClient from '../services/apiClient';
 
 export default function ATSChecker({
+  existingResume,
   onBackToDashboard,
   onOpenResumeBuilder,
 }) {
   const fileInputRef = useRef(null);
 
+  const [error, setError] = useState('');
   const [mode, setMode] = useState('upload');
   const [selectedFile, setSelectedFile] = useState(null);
   const [jobDescription, setJobDescription] =
@@ -122,6 +55,11 @@ export default function ATSChecker({
       return;
     }
 
+    if (!/\.(pdf|docx|txt)$/i.test(file.name) || file.size > 10 * 1024 * 1024 || !file.size) {
+      setError('Choose a nonempty PDF, DOCX or TXT file, up to 10 MB.');
+      return;
+    }
+    setError('');
     setSelectedFile(file);
     setMode('ready');
   };
@@ -135,11 +73,9 @@ export default function ATSChecker({
   ===================================================== */
 
   const handleUseExistingResume = () => {
-    setSelectedFile({
-      name: 'My_Resume.pdf',
-      type: 'application/pdf',
-      size: 245000,
-    });
+    if (!existingResume || existingResume._exampleSections?.length) { setError('Save a resume with your own details first; example content cannot be scored.'); return; }
+    setError('');
+    setSelectedFile({ name: 'Current Resume', resume: existingResume });
 
     setMode('ready');
   };
@@ -148,42 +84,35 @@ export default function ATSChecker({
      ANALYZE
   ===================================================== */
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
+    setError('');
     setMode('analyzing');
-    setAnalysisProgress(0);
+    setAnalysisProgress(20);
     setAnalysisStep(0);
-
-    const steps = [
-      'Reading resume',
-      'Analyzing keywords',
-      'Checking skills',
-      'Checking formatting',
-      'Generating ATS insights',
-    ];
-
-    let currentStep = 0;
-
-    const interval = setInterval(() => {
-      currentStep += 1;
-
-      setAnalysisStep(currentStep);
-
-      setAnalysisProgress(
-        Math.min(
-          currentStep * 20,
-          100
-        )
-      );
-
-      if (currentStep >= steps.length) {
-        clearInterval(interval);
-
-        setTimeout(() => {
-          setAnalysis(mockAnalysis);
-          setMode('results');
-        }, 500);
+    try {
+      let body;
+      if (selectedFile.resume) {
+        const resume = selectedFile.resume;
+        const lines = [Object.values(resume.personal || {}).join(' '), resume.summary || ''];
+        for (const section of ['skills', 'education', 'experience', 'projects', 'achievements']) {
+          if (resume[section]?.length) lines.push(section, ...resume[section].map(item => typeof item === 'string' ? item : Object.values(item).join(' ')));
+        }
+        body = { resumeText: lines.join('\n'), jobDescription };
+      } else {
+        body = new FormData();
+        body.append('resume', selectedFile);
+        body.append('jobDescription', jobDescription);
       }
-    }, 700);
+      const result = await apiClient.post('/ats/analyze', body);
+      setAnalysisProgress(100);
+      setAnalysisStep(5);
+      setAnalysis(result);
+      setAppliedSuggestions([]);
+      setMode('results');
+    } catch (err) {
+      setError(err.message || 'Unable to read this resume. Try another file.');
+      setMode('ready');
+    }
   };
 
   /* =====================================================
@@ -205,6 +134,7 @@ export default function ATSChecker({
   ===================================================== */
 
   const handleCheckAnother = () => {
+    setError('');
     setMode('upload');
     setSelectedFile(null);
     setJobDescription('');
@@ -277,7 +207,7 @@ export default function ATSChecker({
                   <h2>Upload Your Resume</h2>
 
                   <p>
-                    Upload your PDF or DOCX resume.
+                    Upload a PDF, DOCX or TXT resume (up to 10 MB).
                   </p>
                 </div>
 
@@ -287,7 +217,7 @@ export default function ATSChecker({
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".pdf,.doc,.docx"
+                accept=".pdf,.docx,.txt"
                 onChange={handleFileChange}
                 hidden
               />
@@ -307,7 +237,7 @@ export default function ATSChecker({
                   </strong>
 
                   <span>
-                    PDF, DOC or DOCX
+                    PDF, DOCX or TXT
                   </span>
                 </button>
               ) : (
@@ -381,6 +311,7 @@ export default function ATSChecker({
 
           </div>
 
+          {error && <p role="alert" className="ats-job-hint">{error}</p>}
           {/* ANALYZE BUTTON */}
           <div className="ats-analyze-wrapper">
 
@@ -606,9 +537,7 @@ export default function ATSChecker({
             </h2>
 
             <p>
-              Your resume is well structured and
-              compatible with many ATS systems, but
-              there are some areas that can be improved.
+              {analysis?.summary}
             </p>
 
             <div className="ats-score-file">
@@ -620,6 +549,7 @@ export default function ATSChecker({
 
         </section>
 
+        <p className="ats-job-hint">Content quality: {analysis?.contentQuality}% · {analysis?.wordCount} words. Score weights: {Object.entries(analysis?.weights || {}).map(([key, value]) => `${key.replace(/([A-Z])/g, ' $1')}: ${value}%`).join(' · ')}. N/A means there is insufficient evidence to assess that metric.</p>
         {/* METRICS */}
         <section className="ats-metrics-grid">
 
@@ -634,7 +564,7 @@ export default function ATSChecker({
               </span>
 
               <strong>
-                {analysis?.keywordMatch}%
+                {analysis?.keywordMatch == null ? 'N/A' : `${analysis.keywordMatch}%`}
               </strong>
             </div>
           </div>
@@ -650,7 +580,7 @@ export default function ATSChecker({
               </span>
 
               <strong>
-                {analysis?.skillsMatch}%
+                {analysis?.skillsMatch == null ? 'N/A' : `${analysis.skillsMatch}%`}
               </strong>
             </div>
           </div>
@@ -662,11 +592,11 @@ export default function ATSChecker({
 
             <div>
               <span>
-                Experience Match
+                Experience Requirement
               </span>
 
               <strong>
-                {analysis?.experienceMatch}%
+                {analysis?.experienceMatch == null ? 'N/A' : `${analysis.experienceMatch}%`}
               </strong>
             </div>
           </div>
@@ -829,7 +759,7 @@ export default function ATSChecker({
 
               <div>
                 <p className="ats-eyebrow">
-                  AI RESUME COACH
+                  RESUME COACH
                 </p>
 
                 <h2>
@@ -880,7 +810,7 @@ export default function ATSChecker({
                       {isApplied && (
                         <span className="ats-applied-badge">
                           <Check size={13} />
-                          Applied
+                          Reviewed
                         </span>
                       )}
 
@@ -905,7 +835,7 @@ export default function ATSChecker({
 
                       <div className="ats-suggested-box">
                         <span>
-                          AI SUGGESTION
+                          SUGGESTED ACTION
                         </span>
 
                         <p>
@@ -928,12 +858,12 @@ export default function ATSChecker({
                       {isApplied ? (
                         <>
                           <Check size={15} />
-                          Suggestion Applied
+                          Marked Reviewed
                         </>
                       ) : (
                         <>
                           <Wand2 size={15} />
-                          Apply Suggestion
+                          Mark Reviewed
                         </>
                       )}
                     </button>

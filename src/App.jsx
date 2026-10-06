@@ -299,6 +299,7 @@ function App() {
       ================================================= */}
       {page === 'atsChecker' && (
         <ATSChecker
+          existingResume={savedResumes[0]?.resume || resumeDraft}
           onBackToDashboard={
             handleBackFromATS
           }
