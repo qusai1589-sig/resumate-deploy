@@ -1,11 +1,12 @@
 import { getAuthClient } from './authService';
 const API_BASE_URL = '/api';
 class ApiClient {
-  async request(endpoint, { method = 'GET', body, blob = false } = {}) {
+  async request(endpoint, { method = 'GET', body, blob = false, expectedUserId } = {}) {
     const client = await getAuthClient();
     const { data, error } = await client.auth.getSession();
     if (error) throw error;
     if (!data.session) throw new Error('Please sign in to access your documents.');
+    if (expectedUserId && data.session.user.id !== expectedUserId) throw new Error('Your account changed. Reopen the chat to continue.');
     const headers = { Authorization: `Bearer ${data.session.access_token}` };
     if (body && !(body instanceof FormData)) headers['Content-Type'] = 'application/json';
     const response = await fetch(`${API_BASE_URL}${endpoint}`, { method, headers, body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined });

@@ -36,6 +36,14 @@ Uploads up to 10 MB go directly to owner-protected Supabase storage, then the AP
 validates their signed upload tickets, file signatures, sizes and ownership.
 Downloads use authenticated owner checks followed by 60-second signed URLs.
 
+## Saved assistant conversations
+
+Signed-in users can open the AI Assistant from the dashboard or floating button.
+Questions and replies save privately to their Supabase account and restore after
+reopening the website or signing in on another device with the same Google or
+email account. Unfinished replies can be retried; older history loads on demand.
+See DEPLOYMENT.md for storage permissions and server-side chat configuration.
+
 ## Checks
 
 ```bash

@@ -154,3 +154,11 @@ test('non-JSON deployment response does not surface a JSON parse error', async (
   const { auth } = await loadAuth({ remote: () => new Response('<html>Bad gateway</html>', { status: 502 }) });
   await assert.rejects(auth.authenticate('signin', 'test@example.invalid', 'test-password'), /invalid response/);
 });
+
+test('chat client refuses to send an old account message after an account switch', async () => {
+  const { state, moduleURL } = await loadAuth({ initial: { ...session(), expires_at: Date.now() / 1000 + 3600 } });
+  const source = (await readFile(new URL('../../src/services/apiClient.js', import.meta.url), 'utf8')).replace("'./authService'", JSON.stringify(moduleURL));
+  const { apiClient } = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+  await assert.rejects(apiClient.request('/chat', { method: 'POST', body: { content: 'private question' }, expectedUserId: 'previous-owner' }), /account changed/);
+  assert.ok(!state.calls.some(call => call.url.endsWith('/chat')));
+});

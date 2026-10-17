@@ -1,3 +1,4 @@
+import AIChatbot from './components/AIChatbot/AIChatbot';
 import { useEffect, useState } from 'react';
 
 import { templateResume, applyDocumentToResume } from './services/documentResume';
@@ -17,6 +18,7 @@ import CertificateVaultModal from './components/CertificateVault/CertificateVaul
 
 function App() {
   const [page, setPage] = useState('landing');
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [session, setSession] = useState(null);
   const [resumeDraft, setResumeDraft] = useState(templateResume);
   const [savedResumes, setSavedResumes] = useState([]);
@@ -43,7 +45,7 @@ function App() {
       if (data.session) setPage('dashboard');
       let previousUserId = data.session?.user.id;
       subscription = client.auth.onAuthStateChange((_event, next) => {
-        if (previousUserId !== next?.user.id) { setIsVaultOpen(false); setPendingDocument(null); setResumeDraft(templateResume()); setActiveResumeId(null); setSavedResumes(listSavedResumes(next?.user.id)); }
+        if (previousUserId !== next?.user.id) { setIsChatOpen(false); setIsVaultOpen(false); setPendingDocument(null); setResumeDraft(templateResume()); setActiveResumeId(null); setSavedResumes(listSavedResumes(next?.user.id)); }
         previousUserId = next?.user.id;
         setSession(next);
         if (!next) { setIsVaultOpen(false); setResumeDraft(templateResume()); setPendingDocument(null); setPage('landing'); }
@@ -225,6 +227,7 @@ function App() {
   if (!authReady) return <p role="status">Restoring session…</p>;
   return (
     <>
+      {session && <AIChatbot key={session.user.id} user={session.user} isOpen={isChatOpen} onToggle={() => setIsChatOpen(open => !open)} />}
       {authError && <p role="alert">{authError}</p>}
       {session && !['dashboard', 'resumeBuilder'].includes(page) && <div className="account-toolbar">{accountMenu}</div>}
       {/* =================================================
@@ -258,6 +261,7 @@ function App() {
           onCreateResume={handleCreateResume}
           onOpenVault={handleOpenVault}
           onOpenATS={handleOpenATS}
+          onOpenAIAssistant={() => setIsChatOpen(true)}
         />
       )}
 

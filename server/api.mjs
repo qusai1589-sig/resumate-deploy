@@ -1,3 +1,4 @@
+import { chatHistory, sendChat, chatProfile, saveChatProfile } from './chat.mjs';
 import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
 import { ApiError, readJson, requireCondition } from './errors.mjs';
 import { createSupabase, publicConfig, objectPath, boundedBytes, detectFileType, MAX_FILE_BYTES } from './supabase.mjs';
@@ -178,6 +179,10 @@ export function createHandler({ env = process.env, fetcher = globalThis.fetch, d
       const supabase = createSupabase(env, fetcher);
       if (['signup', 'login'].includes(path) && method === 'POST') return json(await account(await readJson(request), path === 'signup', supabase, request, signupRedirectUrl));
       const owner = await supabase.user(request);
+      if (path === 'chat/profile' && method === 'GET') return json({ profile: await chatProfile(owner, supabase) });
+      if (path === 'chat/profile' && method === 'POST') return json(await saveChatProfile(await readJson(request), owner, supabase));
+      if (path === 'chat' && method === 'GET') return json(await chatHistory(owner, supabase, Number(new URL(request.url).searchParams.get('offset') || 0)));
+      if (path === 'chat' && method === 'POST') return json(await sendChat(await readJson(request), owner, supabase, env, fetcher));
       if (path === 'ats/analyze' && method === 'POST') return json(await analyzeRequest(request));
       if (path === 'documents' && method === 'GET') return json({ documents: await supabase.documents(owner, { select: 'id,user_id,document_type,file_name,file_path,file_size_bytes,mime_type,status,uploaded_at', user_id: `eq.${owner.id}`, order: 'uploaded_at.desc' }) });
       if (path === 'upload/prepare' && method === 'POST') return json(await prepareUpload(await readJson(request), owner, supabase, env));

@@ -17,6 +17,7 @@ export default function Dashboard({
   onCreateResume,
   onOpenVault,
   onOpenATS,
+  onOpenAIAssistant,
   accountMenu,
 }) {
   return (
@@ -201,11 +202,7 @@ export default function Dashboard({
 
                   <button
                     type="button"
-                    onClick={() =>
-                      alert(
-                        'AI Resume Assistant will be available soon.'
-                      )
-                    }
+                    onClick={onOpenAIAssistant}
                   >
                     Try AI Assistant
                     <ArrowRight size={16} />
