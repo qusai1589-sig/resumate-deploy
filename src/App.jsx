@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 
 import { templateResume, applyDocumentToResume } from './services/documentResume';
 import { getAuthClient } from './services/authService';
+import apiClient from './services/apiClient';
 
 import AccountMenu from './components/Account/AccountMenu';
 import YourResumes from './screens/YourResumes';
@@ -22,6 +23,9 @@ function App() {
   const [session, setSession] = useState(null);
   const [resumeDraft, setResumeDraft] = useState(templateResume);
   const [savedResumes, setSavedResumes] = useState([]);
+  const [documentListing, setDocumentListing] = useState(null);
+  const [documentError, setDocumentError] = useState(null);
+  const [latestAnalysis, setLatestAnalysis] = useState(null);
   const [pendingDocument, setPendingDocument] = useState(null);
   const [activeResumeId, setActiveResumeId] = useState(null);
   const [authReady, setAuthReady] = useState(false);
@@ -54,6 +58,27 @@ function App() {
     }).catch(error => { if (alive) { setAuthError(error.message); setAuthReady(true); } });
     return () => { alive = false; subscription?.unsubscribe(); };
   }, []);
+
+  const userId = session?.user.id;
+  useEffect(() => {
+    if (!userId || page !== 'dashboard' || isVaultOpen) return;
+    let active = true;
+    const refresh = () => apiClient.request('/documents', { expectedUserId: userId }).then(data => {
+      if (!active) return;
+      setDocumentListing({ userId, documents: data.documents }); setDocumentError(null);
+    }).catch(error => { if (active) setDocumentError({ userId, message: error.message }); });
+    refresh();
+    window.addEventListener('focus', refresh);
+    return () => { active = false; window.removeEventListener('focus', refresh); };
+  }, [userId, page, isVaultOpen]);
+  useEffect(() => {
+    if (!userId) return;
+    const sync = event => {
+      if (event.key === `resumate.resumes.${userId}` || event.key === null) setSavedResumes(listSavedResumes(userId));
+    };
+    window.addEventListener('storage', sync);
+    return () => window.removeEventListener('storage', sync);
+  }, [userId]);
 
   /* =====================================================
      BROWSER HISTORY
@@ -222,6 +247,7 @@ function App() {
     const { entry, entries } = saveResume(session?.user.id, resumeDraft, selectedTemplate, activeResumeId);
     setActiveResumeId(entry.id); setSavedResumes(entries);
   };
+  const openSavedResume = entry => { setResumeDraft(entry.resume); setSelectedTemplate(entry.template); setActiveResumeId(entry.id); navigateTo('resumeBuilder'); };
   const accountMenu = session && <AccountMenu user={session.user} onHome={() => navigateTo('landing')} onResumes={() => navigateTo('yourResumes')} onDashboard={handleBackToDashboard} onVault={handleOpenVault} onLogout={handleLogout} />;
 
   if (!authReady) return <p role="status">Restoring session…</p>;
@@ -253,7 +279,7 @@ function App() {
       {/* =================================================
           DASHBOARD
       ================================================= */}
-      {page === 'yourResumes' && <YourResumes resumes={savedResumes} onCreate={handleCreateResume} onBack={handleBackToDashboard} onOpen={entry => { setResumeDraft(entry.resume); setSelectedTemplate(entry.template); setActiveResumeId(entry.id); navigateTo('resumeBuilder'); }} />}
+      {page === 'yourResumes' && <YourResumes resumes={savedResumes} onCreate={handleCreateResume} onBack={handleBackToDashboard} onOpen={openSavedResume} />}
 
       {page === 'dashboard' && (
         <Dashboard
@@ -262,6 +288,12 @@ function App() {
           onOpenVault={handleOpenVault}
           onOpenATS={handleOpenATS}
           onOpenAIAssistant={() => setIsChatOpen(true)}
+          resumes={savedResumes}
+          onOpenResume={openSavedResume}
+          onOpenResumes={() => navigateTo('yourResumes')}
+          documentCount={documentListing?.userId === userId ? documentListing.documents.length : null}
+          documentError={documentError?.userId === userId ? documentError.message : ''}
+          resumeScore={latestAnalysis?.userId === userId ? latestAnalysis.score : null}
         />
       )}
 
@@ -304,6 +336,7 @@ function App() {
       {page === 'atsChecker' && (
         <ATSChecker
           existingResume={resumeDraft}
+          onAnalysisComplete={result => setLatestAnalysis({ userId, score: result.score })}
           onBackToDashboard={
             handleBackFromATS
           }

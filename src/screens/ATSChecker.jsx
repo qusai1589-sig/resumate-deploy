@@ -21,6 +21,7 @@ import apiClient from '../services/apiClient';
 import { inspectResume } from '../services/atsValidation';
 
 export default function ATSChecker({
+  onAnalysisComplete,
   existingResume,
   onBackToDashboard,
   onOpenResumeBuilder,
@@ -123,6 +124,7 @@ export default function ATSChecker({
       setAnalysisProgress(100);
       setAnalysisStep(5);
       setAnalysis(result);
+      onAnalysisComplete?.(result);
       setAppliedSuggestions([]);
       setMode('results');
     } catch (err) {

@@ -9,3 +9,14 @@
 .saved-resume-card p { font-size: .85rem; margin-bottom: 12px; }
 .saved-resume-empty { text-align: center; padding: 60px 20px; background: white; border: 1px solid #e2e8f0; border-radius: 16px; }
 .saved-resume-empty h2 { margin: 16px 0; }
+.saved-resume-card h3 {font-size:1.1rem;margin:16px 0 10px;overflow-wrap:anywhere;color:#17203a}
+.saved-resume-empty h3 {margin:16px 0;font-size:1.3rem}
+.saved-resume-empty .btn {margin-top:20px}
+.resume-library-actions {display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.resume-library-count {display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:28px;margin-left:6px;padding:0 8px;border-radius:8px;background:#ede9fe;color:#6d4aff;font-size:14px;vertical-align:middle}
+.saved-resume-icon {display:inline-flex;padding:13px;background:#f0edff;border-radius:13px}
+.dashboard-resume-library .your-resumes-heading {margin-top:0}
+.dashboard-resume-library .your-resumes-heading h2 {font-size:24px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px}
+.dashboard-resume-library .your-resumes-heading p {font-size:13px;max-width:520px;line-height:1.7}
+.dashboard-resume-library .saved-resume-card {box-shadow:0 6px 24px #20255a06}
+@media(max-width:600px){.resume-library-actions{width:100%}.resume-library-actions .btn{flex:1;justify-content:center}}

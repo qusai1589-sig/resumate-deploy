@@ -1,3 +1,4 @@
+import YourResumes from './YourResumes';
 
 import {
   FileText,
@@ -19,6 +20,12 @@ export default function Dashboard({
   onOpenATS,
   onOpenAIAssistant,
   accountMenu,
+  resumes = [],
+  onOpenResume,
+  onOpenResumes,
+  documentCount = null,
+  documentError = '',
+  resumeScore = null,
 }) {
   return (
     <div className="dashboard-page">
@@ -69,42 +76,45 @@ export default function Dashboard({
           <section className="dashboard-stats">
 
             {/* My Resumes */}
-            <div className="dashboard-stat-card">
+            <button type="button" className="dashboard-stat-card dashboard-stat-link" onClick={onOpenResumes} aria-label={`Open my resumes, ${resumes.length} saved`}>
               <div className="dashboard-stat-icon">
                 <FileText size={22} />
               </div>
 
               <div>
                 <span>My Resumes</span>
-                <strong>0</strong>
+                <strong>{resumes.length}</strong>
               </div>
-            </div>
+            </button>
 
             {/* Certificates */}
-            <div className="dashboard-stat-card">
+            <button type="button" className="dashboard-stat-card dashboard-stat-link" onClick={onOpenVault} aria-label="Open certificates and mark sheets">
               <div className="dashboard-stat-icon">
                 <Award size={22} />
               </div>
 
               <div>
-                <span>Certificates</span>
-                <strong>0</strong>
+                <span>Certificates &amp; Mark Sheets</span>
+                <strong>{documentError ? 'Unavailable' : documentCount ?? '…'}</strong>
               </div>
-            </div>
+            </button>
 
             {/* Resume Score */}
-            <div className="dashboard-stat-card">
+            <button type="button" className="dashboard-stat-card dashboard-stat-link" onClick={onOpenATS} aria-label="Check resume ATS score">
               <div className="dashboard-stat-icon">
                 <Sparkles size={22} />
               </div>
 
               <div>
-                <span>Resume Score</span>
-                <strong>--</strong>
+                <span>Latest ATS Score</span>
+                <strong>{resumeScore == null ? '—' : `${resumeScore}/100`}</strong>
               </div>
-            </div>
+            </button>
 
           </section>
+
+          {documentError && <p className="dashboard-data-error" role="alert">Could not load your documents: {documentError} Open the vault to retry.</p>}
+          <YourResumes embedded resumes={resumes} onOpen={onOpenResume} onCreate={onCreateResume} onViewAll={onOpenResumes} />
 
           {/* =================================================
               QUICK ACTIONS
@@ -331,34 +341,6 @@ export default function Dashboard({
             </div>
           </section>
 
-          {/* =================================================
-              EMPTY WORKSPACE
-          ================================================= */}
-          <section className="dashboard-empty">
-
-            <div className="dashboard-empty-icon">
-              <FileText size={30} />
-            </div>
-
-            <h2>
-              Your Resume Workspace
-            </h2>
-
-            <p>
-              You haven't created a resume yet.
-              Start your first resume and it will appear here.
-            </p>
-
-            <button
-              type="button"
-              className="dashboard-empty-btn"
-              onClick={onCreateResume}
-            >
-              <Plus size={17} />
-              Create Your First Resume
-            </button>
-
-          </section>
 
         </div>
       </main>

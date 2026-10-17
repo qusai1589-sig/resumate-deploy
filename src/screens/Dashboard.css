@@ -790,4 +790,7 @@
   .dashboard-start-item button {
     transition: none;
   }
-}
+}.dashboard-stat-link {width:100%;text-align:left;font:inherit;cursor:pointer;transition:border-color .18s,transform .18s}
+.dashboard-stat-link:hover {border-color:#b8a5fa;transform:translateY(-2px)}
+.dashboard-stat-link:focus-visible {outline:3px solid #b8a5fa;outline-offset:3px}
+.dashboard-data-error {color:#9f3542;background:#fff0f2;border-radius:10px;padding:12px 16px;font-size:13px;margin:12px 0 24px}
